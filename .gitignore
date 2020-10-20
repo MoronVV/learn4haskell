@@ -22,6 +22,7 @@ cabal.project.local
 .ghc.environment.*
 .HTF/
 .hie/
+hie.yaml
 # Stack
 .stack-work/
 stack.yaml.lock
@@ -34,6 +35,7 @@ stack.yaml.lock
 [._]sw[a-p]
 *~
 tags
+Session.vim
 
 # IntellijIDEA
 .idea/
