@@ -493,7 +493,7 @@ Implement a function that returns the last digit of a given number.
 -}
 
 lastDigit :: Int -> Int
-lastDigit n = (abs n) `mod` 10
+lastDigit n = abs n `mod` 10
 
 {- |
 =⚔️= Task 6
@@ -578,7 +578,12 @@ False
 
 isVowel :: Char -> Bool
 isVowel c
-  | c `elem` "aeiouy" = True
+  | c == 'a'          = True
+  | c == 'e'          = True
+  | c == 'i'          = True
+  | c == 'o'          = True
+  | c == 'u'          = True
+  | c == 'y'          = True
   | otherwise         = False
 
 {- |
@@ -645,8 +650,8 @@ specifying complex expressions.
 sumLast2 :: Int -> Int
 sumLast2 n = penultimateNum + lastNum
   where
-    lastNum = absN `mod` 10
-    penultimateNum = (absN `div` 10) `mod` 10
+    (firstNums, lastNum) = absN `divMod` 10
+    penultimateNum = firstNums `mod` 10
     absN = abs n
 
 {- |
