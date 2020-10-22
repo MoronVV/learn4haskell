@@ -642,13 +642,13 @@ Write a function that takes elements of a list only on even positions.
 [2,3,4]
 -}
 takeEven :: [Int] -> [Int]
-takeEven = go 0 []
+takeEven lst = go [] $ zip [0..] lst
   where
-    go :: Int -> [Int] -> [Int] -> [Int]
-    go _ res [] = res
-    go el res (x:xs)
-      | el `mod` 2 == 0 = go (el + 1) (res ++ [x]) xs
-      | otherwise       = go (el + 1) res xs
+    go :: [Int] -> [(Int, Int)] -> [Int]
+    go res [] = reverse res
+    go res ((el, x):xs)
+      | el `mod` 2 == 0 = go (x : res) xs
+      | otherwise       = go res xs
 
 {- |
 =🛡= Higher-order functions
@@ -755,7 +755,7 @@ value of the element itself
 🕯 HINT: Use combination of 'map' and 'replicate'
 -}
 smartReplicate :: [Int] -> [Int]
-smartReplicate l = error "smartReplicate: Not implemented!"
+smartReplicate = concat . map (\x -> replicate x x)
 
 {- |
 =⚔️= Task 9
@@ -768,7 +768,8 @@ the list with only those lists that contain a passed element.
 
 🕯 HINT: Use the 'elem' function to check whether an element belongs to a list
 -}
-contains = error "contains: Not implemented!"
+contains :: Int -> [[Int]] -> [[Int]]
+contains n = filter (elem n)
 
 
 {- |
@@ -808,13 +809,13 @@ Let's now try to eta-reduce some of the functions and ensure that we
 mastered the skill of eta-reducing.
 -}
 divideTenBy :: Int -> Int
-divideTenBy x = div 10 x
+divideTenBy = div 10
 
--- TODO: type ;)
-listElementsLessThan x l = filter (< x) l
+listElementsLessThan :: Int -> [Int] -> [Int]
+listElementsLessThan x = filter (< x)
 
--- Can you eta-reduce this one???
-pairMul xs ys = zipWith (*) xs ys
+pairMul :: [Int] -> [Int] -> [Int]
+pairMul = zipWith (*)
 
 {- |
 =🛡= Lazy evaluation
@@ -869,7 +870,10 @@ list.
 
 🕯 HINT: Use the 'cycle' function
 -}
-rotate = error "rotate: Not implemented!"
+rotate :: Int -> [Int] -> [Int]
+rotate n lst
+  | n < 0     = []
+  | otherwise = take (length lst) . drop n . cycle $ lst
 
 {- |
 =💣= Task 12*
@@ -885,7 +889,8 @@ and reverses it.
   function, but in this task, you need to implement it manually. No
   cheating!
 -}
-rewind = error "rewind: Not Implemented!"
+rewind :: [Int] -> [Int]
+rewind = foldl (\acc x -> x:acc) []
 
 
 {-
