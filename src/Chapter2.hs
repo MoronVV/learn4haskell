@@ -626,7 +626,7 @@ Implement a function that duplicates each element of the list
 -}
 duplicate :: [a] -> [a]
 duplicate []     = []
-duplicate (x:xs) = [x, x] ++ duplicate xs
+duplicate (x:xs) = x : x : duplicate xs
 
 
 {- |
@@ -642,13 +642,9 @@ Write a function that takes elements of a list only on even positions.
 [2,3,4]
 -}
 takeEven :: [Int] -> [Int]
-takeEven lst = go [] $ zip [0..] lst
-  where
-    go :: [Int] -> [(Int, Int)] -> [Int]
-    go res [] = reverse res
-    go res ((el, x):xs)
-      | el `mod` 2 == 0 = go (x : res) xs
-      | otherwise       = go res xs
+takeEven []       = []
+takeEven (x:_:xs) = x : takeEven xs
+takeEven (x:xs)   = x : takeEven xs
 
 {- |
 =🛡= Higher-order functions
@@ -755,7 +751,7 @@ value of the element itself
 🕯 HINT: Use combination of 'map' and 'replicate'
 -}
 smartReplicate :: [Int] -> [Int]
-smartReplicate = concat . map (\x -> replicate x x)
+smartReplicate = concatMap (\x -> replicate x x)
 
 {- |
 =⚔️= Task 9
@@ -890,7 +886,7 @@ and reverses it.
   cheating!
 -}
 rewind :: [Int] -> [Int]
-rewind = foldl (\acc x -> x:acc) []
+rewind = foldl (flip (:)) []
 
 
 {-
