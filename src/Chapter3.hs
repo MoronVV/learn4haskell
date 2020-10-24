@@ -344,6 +344,15 @@ of a book, but you are not limited only by the book properties we described.
 Create your own book type of your dreams!
 -}
 
+data Book = Book
+  { bookName :: String
+  , bookAuthor :: String
+  , bookSize :: Int
+  , bookPublisher :: String
+  , bookGenre :: String
+  , bookYear :: Int
+  } deriving (Show)
+
 {- |
 =⚔️= Task 2
 
@@ -373,6 +382,29 @@ after the fight. The battle has the following possible outcomes:
    doesn't earn any money and keeps what they had before.
 
 -}
+
+type Gold = Int
+
+data Knight = Knight
+  { knightHealth :: Int
+  , knightAttack :: Int
+  , knightGold :: Int
+  } deriving (Show)
+
+data Monster = Monster
+  { monsterHealth :: Int
+  , monsterAttack :: Int
+  , monsterGold :: Int
+  } deriving (Show)
+
+fight :: Monster -> Knight -> Gold
+fight (Monster mHealth mAttack mGold) (Knight kHealth kAttack kGold)
+  | mHealth <= 0 = kGold + mGold
+  | kHealth <= 0 = -1
+  | otherwise    = fight monster knight
+  where
+    monster = Monster (mHealth - kAttack) mAttack mGold
+    knight  = Knight (kHealth - mAttack) kAttack kGold
 
 {- |
 =🛡= Sum types
@@ -460,6 +492,20 @@ Create a simple enumeration for the meal types (e.g. breakfast). The one who
 comes up with the most number of names wins the challenge. Use your creativity!
 -}
 
+data Meal
+  = Omelette
+  | Beacon
+  | Toast
+  | Potato
+  | Chicken
+  | Rice
+  | Corn
+  | Porridge
+  | Pasta
+  | Pork
+  | Salad
+  | Beef
+
 {- |
 =⚔️= Task 4
 
@@ -479,6 +525,36 @@ After defining the city, implement the following functions:
    complicated task, walls can be built only if the city has a castle
    and at least 10 living __people__ inside in all houses of the city totally.
 -}
+type People = Int
+
+data Castle = Castle String | NoCastle deriving (Show)
+data Wall = Wall | NoWall deriving (Show)
+data SpecBuilding = Church | Library deriving (Show)
+data House = House People deriving (Show)
+
+data City = City
+  { cityCastle          :: Castle
+  , cityWall            :: Wall
+  , citySpecialBuilding :: SpecBuilding
+  , cityHouses          :: [House]
+  } deriving (Show)
+
+buildCastle :: City -> Castle -> City
+buildCastle city castle = city { cityCastle = castle }
+
+buildHouse :: City -> House -> City
+buildHouse city house = city { cityHouses = house:houses }
+  where houses = cityHouses city
+
+buildWalls :: City -> Wall -> City
+buildWalls city@(City NoCastle _ _ _) _ = city
+buildWalls city wall
+  | isEnoughPeople = city { cityWall = wall }
+  | otherwise  = city
+  where
+    isEnoughPeople = totalPeopleCount >= 10
+    totalPeopleCount = foldl (\acc (House p) -> acc + p) 0 houses
+    houses = cityHouses city
 
 {-
 =🛡= Newtypes
