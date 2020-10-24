@@ -382,9 +382,6 @@ after the fight. The battle has the following possible outcomes:
    doesn't earn any money and keeps what they had before.
 
 -}
-
-type Gold = Int
-
 data Knight = Knight
   { knightHealth :: Int
   , knightAttack :: Int
@@ -397,7 +394,7 @@ data Monster = Monster
   , monsterGold :: Int
   } deriving (Show)
 
-fight :: Monster -> Knight -> Gold
+fight :: Monster -> Knight -> Int
 fight (Monster mHealth mAttack mGold) (Knight kHealth kAttack kGold)
   | mHealth <= 0 = kGold + mGold
   | kHealth <= 0 = -1
@@ -636,22 +633,30 @@ introducing extra newtypes.
 🕯 HINT: if you complete this task properly, you don't need to change the
     implementation of the "hitPlayer" function at all!
 -}
+newtype Health = Health Int
+newtype Armor = Armor Int
+newtype Attack = Attack Int
+newtype Dexterity = Dexterity Int
+newtype Strength = Strength Int
+newtype Damage = Damage Int
+newtype Defense = Defense Int
+
 data Player = Player
-    { playerHealth    :: Int
-    , playerArmor     :: Int
-    , playerAttack    :: Int
-    , playerDexterity :: Int
-    , playerStrength  :: Int
+    { playerHealth    :: Health
+    , playerArmor     :: Armor
+    , playerAttack    :: Attack
+    , playerDexterity :: Dexterity
+    , playerStrength  :: Strength
     }
 
-calculatePlayerDamage :: Int -> Int -> Int
-calculatePlayerDamage attack strength = attack + strength
+calculatePlayerDamage :: Attack -> Strength -> Damage
+calculatePlayerDamage (Attack attack) (Strength strength) = Damage (attack + strength)
 
-calculatePlayerDefense :: Int -> Int -> Int
-calculatePlayerDefense armor dexterity = armor * dexterity
+calculatePlayerDefense :: Armor -> Dexterity -> Defense
+calculatePlayerDefense (Armor armor) (Dexterity dexterity) = Defense (armor * dexterity)
 
-calculatePlayerHit :: Int -> Int -> Int -> Int
-calculatePlayerHit damage defense health = health + defense - damage
+calculatePlayerHit :: Damage -> Defense -> Health -> Health
+calculatePlayerHit (Damage damage) (Defense defense) (Health health) = Health (health + defense - damage)
 
 -- The second player hits first player and the new first player is returned
 hitPlayer :: Player -> Player -> Player
@@ -828,6 +833,19 @@ parametrise data types in places where values can be of any general type.
 🕯 HINT: 'Maybe' that some standard types we mentioned above are useful for
   maybe-treasure ;)
 -}
+data TreasureChest x = TreasureChest
+  { treasureChestGold :: Int
+  , treasureChestLoot :: x
+  } deriving (Show)
+
+data Dragon p = Dragon
+  { magicalPower :: p
+  } deriving (Show)
+
+data Lair dp cl = Lair
+  { lairDragon :: Dragon dp
+  , lairTreasures   :: Maybe (TreasureChest cl)
+  } deriving (Show)
 
 {-
 =🛡= Typeclasses
@@ -983,9 +1001,30 @@ Implement instances of "Append" for the following types:
   ✧ *(Challenge): "Maybe" where append is appending of values inside "Just" constructors
 
 -}
-class Append a where
-    append :: a -> a -> a
+newtype Gold = Gold Int deriving (Show)
 
+data List a
+  = Empty
+  | Cons a (List a)
+  deriving (Show)
+
+class Append a where
+  append :: a -> a -> a
+
+instance Append Gold where
+  append :: Gold -> Gold -> Gold
+  append (Gold n1) (Gold n2) = Gold (n1 + n2)
+
+instance Append (List a) where
+  append :: List a -> List a -> List a
+  append Empty ys       = ys
+  append (Cons x xs) ys = Cons x (append xs ys)
+
+instance (Append a) => Append (Maybe a) where
+  append :: Maybe a -> Maybe a -> Maybe a
+  append Nothing outer2 = outer2
+  append outer1 Nothing = outer1
+  append (Just inner1) (Just inner2) = Just $ append inner1 inner2
 
 {-
 =🛡= Standard Typeclasses and Deriving
@@ -1046,6 +1085,32 @@ implement the following functions:
 
 🕯 HINT: to implement this task, derive some standard typeclasses
 -}
+
+data WeekDay
+  = Monday
+  | Tuesday
+  | Wednesday
+  | Thursday
+  | Friday
+  | Saturday
+  | Sunday
+  deriving (Eq, Ord, Enum, Bounded, Show)
+
+isWeekend :: WeekDay -> Bool
+isWeekend weekDay
+  | weekDay > Friday = True
+  | otherwise        = False
+
+nextDay :: WeekDay -> WeekDay
+nextDay = succ
+
+daysToParty :: WeekDay -> Int
+daysToParty = go 0
+  where
+    go :: Int -> WeekDay -> Int
+    go n Friday = n
+    go n Sunday = go (n + 1) (minBound)
+    go n weekDay = go (n + 1) (nextDay weekDay)
 
 {-
 =💣= Task 9*
