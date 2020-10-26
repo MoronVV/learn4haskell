@@ -50,6 +50,7 @@ signatures in places where you can't by default. We believe it's helpful to
 provide more top-level type signatures, especially when learning Haskell.
 -}
 {-# LANGUAGE InstanceSigs #-}
+-- {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Chapter3 where
 
@@ -382,26 +383,26 @@ after the fight. The battle has the following possible outcomes:
    doesn't earn any money and keeps what they had before.
 
 -}
-data Knight = Knight
-  { knightHealth :: Int
-  , knightAttack :: Int
-  , knightGold :: Int
+data Knight_ = Knight_
+  { knightHealth_ :: Int
+  , knightAttack_ :: Int
+  , knightGold_ :: Int
   } deriving (Show)
 
-data Monster = Monster
-  { monsterHealth :: Int
-  , monsterAttack :: Int
-  , monsterGold :: Int
+data Monster_ = Monster_
+  { monsterHealth_ :: Int
+  , monsterAttack_ :: Int
+  , monsterGold_ :: Int
   } deriving (Show)
 
-fight :: Monster -> Knight -> Int
-fight (Monster mHealth mAttack mGold) (Knight kHealth kAttack kGold)
+fight_ :: Monster_ -> Knight_ -> Int
+fight_ (Monster_ mHealth mAttack mGold) (Knight_ kHealth kAttack kGold)
   | mHealth <= 0 = kGold + mGold
   | kHealth <= 0 = -1
-  | otherwise    = fight monster knight
+  | otherwise    = fight_ monster knight
   where
-    monster = Monster (mHealth - kAttack) mAttack mGold
-    knight  = Knight (kHealth - mAttack) kAttack kGold
+    monster = Monster_ (mHealth - kAttack) mAttack mGold
+    knight  = Knight_ (kHealth - mAttack) kAttack kGold
 
 {- |
 =🛡= Sum types
@@ -1147,6 +1148,77 @@ Implement data types and typeclasses, describing such a battle between two
 contestants, and write a function that decides the outcome of a fight!
 -}
 
+data KnightAction
+  = KAttack
+  | KUseHealPotion
+  | KUseDefenseSpeell
+  deriving (Show)
+
+data MonsterAction
+  = MAttack
+  | MRunAway
+  deriving (Show)
+
+data Knight = Knight
+  { knightName :: String
+  , knightHealth :: Int
+  , knightAttack :: Int
+  , knightDefense :: Int
+  , knightActions :: [KnightAction]
+  } deriving (Show)
+
+data Monster = Monster
+  { monsterName :: String
+  , monsterHealth :: Int
+  , monsterAttack :: Int
+  , monsterActions :: [MonsterAction]
+  } deriving (Show)
+
+class Action a
+instance Action KnightAction
+instance Action MonsterAction
+
+class (Action b) => Fighter a b where
+  getName   :: a -> String
+  getHealth :: a -> Int
+  getNextAction :: a -> (a, b)
+
+instance Fighter Knight KnightAction where
+  getName = knightName
+
+  getHealth = knightHealth
+
+  getNextAction knight = (knight', action)
+    where
+      actions = knightActions knight
+      action = head actions
+      knight' = knight { knightActions = tail actions ++ [head actions] }
+
+instance Fighter Monster MonsterAction where
+  getName = monsterName
+
+  getHealth = monsterHealth
+
+  getNextAction monster = (monster', action)
+    where
+      actions = monsterActions monster
+      action = head actions
+      monster' = monster { monsterActions = tail actions ++ [head actions] }
+
+turn :: (Fighter f1, Fighter f2, Action a) => a -> f1 -> f2 -> (f1, f2)
+turn action attacker defender = case action of 
+  KAttack -> (getHit attacker defDmg, getHit defender atkDmg)
+  MAttack -> (getHit attacker defDmg, getHit defender atkDmg)
+
+fight :: (Fighter f1, Fighter f2) => f1 -> f2 -> String
+fight attacker defender
+  | defenderHealth <= 0 = (getName attacker) ++ " won!"
+  | attackerHealth <= 0 = (getName defender) ++ " won!"
+  | otherwise           = fight defender' attacker'
+  where
+    (attacker', defender') = turn attacker defender
+    attackerHealth = getHealth attacker
+    defenderHealth = getHealth defender
 
 {-
 You did it! Now it is time to open pull request with your changes
