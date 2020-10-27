@@ -50,6 +50,7 @@ signatures in places where you can't by default. We believe it's helpful to
 provide more top-level type signatures, especially when learning Haskell.
 -}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE RecordWildCards #-}
 -- {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Chapter3 where
@@ -396,13 +397,13 @@ data Monster_ = Monster_
   } deriving (Show)
 
 fight_ :: Monster_ -> Knight_ -> Int
-fight_ (Monster_ mHealth mAttack mGold) (Knight_ kHealth kAttack kGold)
-  | mHealth <= 0 = kGold + mGold
-  | kHealth <= 0 = -1
-  | otherwise    = fight_ monster knight
+fight_ monster@Monster_{..} knight@Knight_{..}
+  | monsterHealth_ <= 0 = knightGold_ + monsterGold_
+  | knightHealth_ <= 0 = -1
+  | otherwise    = fight_ monster' knight'
   where
-    monster = Monster_ (mHealth - kAttack) mAttack mGold
-    knight  = Knight_ (kHealth - mAttack) kAttack kGold
+    monster' = monster { monsterHealth_ = monsterHealth_ - knightAttack_ }
+    knight'  = knight { knightHealth_ = knightHealth_ - monsterAttack_ }
 
 {- |
 =🛡= Sum types
@@ -523,16 +524,26 @@ After defining the city, implement the following functions:
    complicated task, walls can be built only if the city has a castle
    and at least 10 living __people__ inside in all houses of the city totally.
 -}
-type People = Int
+data People
+  = NoPeople
+  | OnePerson
+  | TwoPersons
+  | ThreePersons
+  | FourPersons
+  deriving (Show, Enum)
 
-data Castle = Castle String | NoCastle deriving (Show)
-data Wall = Wall | NoWall deriving (Show)
+data Castle
+  = Castle String
+  | CastleWithWall
+  | NoCastle 
+  deriving (Show)
+
 data SpecBuilding = Church | Library deriving (Show)
-data House = House People deriving (Show)
+
+newtype House = House People deriving (Show)
 
 data City = City
   { cityCastle          :: Castle
-  , cityWall            :: Wall
   , citySpecialBuilding :: SpecBuilding
   , cityHouses          :: [House]
   } deriving (Show)
@@ -544,14 +555,15 @@ buildHouse :: City -> House -> City
 buildHouse city house = city { cityHouses = house:houses }
   where houses = cityHouses city
 
-buildWalls :: City -> Wall -> City
-buildWalls city@(City NoCastle _ _ _) _ = city
-buildWalls city wall
-  | isEnoughPeople = city { cityWall = wall }
+buildWalls :: City -> City
+buildWalls city@(City NoCastle _ _) = city
+buildWalls city@(City CastleWithWall _ _) = city
+buildWalls city
+  | isEnoughPeople = city { cityCastle = CastleWithWall }
   | otherwise  = city
   where
     isEnoughPeople = totalPeopleCount >= 10
-    totalPeopleCount = foldl (\acc (House p) -> acc + p) 0 houses
+    totalPeopleCount = sum . map (\(House p) -> fromEnum p) $ houses
     houses = cityHouses city
 
 {-
@@ -1019,6 +1031,7 @@ instance Append Gold where
 instance Append (List a) where
   append :: List a -> List a -> List a
   append Empty ys       = ys
+  append xs Empty       = xs
   append (Cons x xs) ys = Cons x (append xs ys)
 
 instance (Append a) => Append (Maybe a) where
@@ -1098,19 +1111,17 @@ data WeekDay
   deriving (Eq, Ord, Enum, Bounded, Show)
 
 isWeekend :: WeekDay -> Bool
-isWeekend weekDay
-  | weekDay > Friday = True
-  | otherwise        = False
+isWeekend weekDay = weekDay > Friday
 
 nextDay :: WeekDay -> WeekDay
-nextDay = succ
+nextDay Sunday = minBound
+nextDay weekDay = succ weekDay
 
 daysToParty :: WeekDay -> Int
 daysToParty = go 0
   where
     go :: Int -> WeekDay -> Int
     go n Friday = n
-    go n Sunday = go (n + 1) (minBound)
     go n weekDay = go (n + 1) (nextDay weekDay)
 
 {-
@@ -1148,77 +1159,77 @@ Implement data types and typeclasses, describing such a battle between two
 contestants, and write a function that decides the outcome of a fight!
 -}
 
-data KnightAction
-  = KAttack
-  | KUseHealPotion
-  | KUseDefenseSpeell
-  deriving (Show)
+-- data KnightAction
+--   = KAttack
+--   | KUseHealPotion
+--   | KUseDefenseSpeell
+--   deriving (Show)
 
-data MonsterAction
-  = MAttack
-  | MRunAway
-  deriving (Show)
+-- data MonsterAction
+--   = MAttack
+--   | MRunAway
+--   deriving (Show)
 
-data Knight = Knight
-  { knightName :: String
-  , knightHealth :: Int
-  , knightAttack :: Int
-  , knightDefense :: Int
-  , knightActions :: [KnightAction]
-  } deriving (Show)
+-- data Knight = Knight
+--   { knightName :: String
+--   , knightHealth :: Int
+--   , knightAttack :: Int
+--   , knightDefense :: Int
+--   , knightActions :: [KnightAction]
+--   } deriving (Show)
 
-data Monster = Monster
-  { monsterName :: String
-  , monsterHealth :: Int
-  , monsterAttack :: Int
-  , monsterActions :: [MonsterAction]
-  } deriving (Show)
+-- data Monster = Monster
+--   { monsterName :: String
+--   , monsterHealth :: Int
+--   , monsterAttack :: Int
+--   , monsterActions :: [MonsterAction]
+--   } deriving (Show)
 
-class Action a
-instance Action KnightAction
-instance Action MonsterAction
+-- class Action a
+-- instance Action KnightAction
+-- instance Action MonsterAction
 
-class (Action b) => Fighter a b where
-  getName   :: a -> String
-  getHealth :: a -> Int
-  getNextAction :: a -> (a, b)
+-- class (Action b) => Fighter a b where
+--   getName   :: a -> String
+--   getHealth :: a -> Int
+--   getNextAction :: a -> (a, b)
 
-instance Fighter Knight KnightAction where
-  getName = knightName
+-- instance Fighter Knight KnightAction where
+--   getName = knightName
 
-  getHealth = knightHealth
+--   getHealth = knightHealth
 
-  getNextAction knight = (knight', action)
-    where
-      actions = knightActions knight
-      action = head actions
-      knight' = knight { knightActions = tail actions ++ [head actions] }
+--   getNextAction knight = (knight', action)
+--     where
+--       actions = knightActions knight
+--       action = head actions
+--       knight' = knight { knightActions = tail actions ++ [head actions] }
 
-instance Fighter Monster MonsterAction where
-  getName = monsterName
+-- instance Fighter Monster MonsterAction where
+--   getName = monsterName
 
-  getHealth = monsterHealth
+--   getHealth = monsterHealth
 
-  getNextAction monster = (monster', action)
-    where
-      actions = monsterActions monster
-      action = head actions
-      monster' = monster { monsterActions = tail actions ++ [head actions] }
+--   getNextAction monster = (monster', action)
+--     where
+--       actions = monsterActions monster
+--       action = head actions
+--       monster' = monster { monsterActions = tail actions ++ [head actions] }
 
-turn :: (Fighter f1, Fighter f2, Action a) => a -> f1 -> f2 -> (f1, f2)
-turn action attacker defender = case action of 
-  KAttack -> (getHit attacker defDmg, getHit defender atkDmg)
-  MAttack -> (getHit attacker defDmg, getHit defender atkDmg)
+-- turn :: (Fighter f1, Fighter f2, Action a) => a -> f1 -> f2 -> (f1, f2)
+-- turn action attacker defender = case action of 
+--   KAttack -> (getHit attacker defDmg, getHit defender atkDmg)
+--   MAttack -> (getHit attacker defDmg, getHit defender atkDmg)
 
-fight :: (Fighter f1, Fighter f2) => f1 -> f2 -> String
-fight attacker defender
-  | defenderHealth <= 0 = (getName attacker) ++ " won!"
-  | attackerHealth <= 0 = (getName defender) ++ " won!"
-  | otherwise           = fight defender' attacker'
-  where
-    (attacker', defender') = turn attacker defender
-    attackerHealth = getHealth attacker
-    defenderHealth = getHealth defender
+-- fight :: (Fighter f1, Fighter f2) => f1 -> f2 -> String
+-- fight attacker defender
+--   | defenderHealth <= 0 = (getName attacker) ++ " won!"
+--   | attackerHealth <= 0 = (getName defender) ++ " won!"
+--   | otherwise           = fight defender' attacker'
+--   where
+--     (attacker', defender') = turn attacker defender
+--     attackerHealth = getHealth attacker
+--     defenderHealth = getHealth defender
 
 {-
 You did it! Now it is time to open pull request with your changes
