@@ -51,7 +51,6 @@ provide more top-level type signatures, especially when learning Haskell.
 -}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE RecordWildCards #-}
--- {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Chapter3 where
 
@@ -1159,77 +1158,85 @@ Implement data types and typeclasses, describing such a battle between two
 contestants, and write a function that decides the outcome of a fight!
 -}
 
--- data KnightAction
---   = KAttack
---   | KUseHealPotion
---   | KUseDefenseSpeell
---   deriving (Show)
+data Action
+  = AttackOpponent
+  | UseHealingPotion
+  | UseDefenseSpeell
+  | RunAway
+  deriving Show
 
--- data MonsterAction
---   = MAttack
---   | MRunAway
---   deriving (Show)
+data Knight = Knight
+  { knightName :: String
+  , knightHealth :: Int
+  , knightAttack :: Int
+  , knightDefense :: Int
+  , knightActions :: [Action]
+  } deriving Show
 
--- data Knight = Knight
---   { knightName :: String
---   , knightHealth :: Int
---   , knightAttack :: Int
---   , knightDefense :: Int
---   , knightActions :: [KnightAction]
---   } deriving (Show)
+data Monster = Monster
+  { monsterName :: String
+  , monsterHealth :: Int
+  , monsterAttack :: Int
+  , monsterActions :: [Action]
+  } deriving Show
 
--- data Monster = Monster
---   { monsterName :: String
---   , monsterHealth :: Int
---   , monsterAttack :: Int
---   , monsterActions :: [MonsterAction]
---   } deriving (Show)
+class Fighter fighter where
+  getName :: fighter -> String
+  getHealth :: fighter -> Int
+  getAttack :: fighter -> Int
+  getActions :: fighter -> [Action]
+  setActions :: fighter -> [Action] -> fighter
+  getHit :: fighter -> Int -> fighter
+  useHealingPotion :: fighter -> fighter
+  useDefenseSpeell :: fighter -> fighter
+  runAway :: fighter -> fighter
 
--- class Action a
--- instance Action KnightAction
--- instance Action MonsterAction
+instance Fighter Knight where
+  getName = knightName
+  getHealth = knightHealth
+  getAttack = knightAttack
+  getActions = knightActions
+  setActions knight actions = knight { knightActions = actions }
+  getHit knight dmg = knight { knightHealth = knightHealth knight - (dmg - knightDefense knight) }
+  useHealingPotion knight = knight { knightHealth = knightHealth knight + 50 }
+  useDefenseSpeell knight = knight { knightDefense = knightDefense knight + 25 }
+  runAway knight = knight
 
--- class (Action b) => Fighter a b where
---   getName   :: a -> String
---   getHealth :: a -> Int
---   getNextAction :: a -> (a, b)
+instance Fighter Monster where
+  getName = monsterName
+  getHealth = monsterHealth
+  getAttack = monsterAttack
+  getActions = monsterActions
+  setActions monster actions = monster { monsterActions = actions }
+  getHit monster dmg = monster { monsterHealth = monsterHealth monster - dmg }
+  useHealingPotion monster = monster
+  useDefenseSpeell monster = monster
+  runAway monster = monster { monsterHealth = 0 }
 
--- instance Fighter Knight KnightAction where
---   getName = knightName
+getNextAction :: (Fighter fighter) => fighter -> (Action, fighter)
+getNextAction fighter = (nextAction, fighter')
+  where
+    actions = getActions fighter
+    nextAction = head actions
+    fighter' = setActions fighter (tail actions ++ [nextAction])
 
---   getHealth = knightHealth
+fight :: (Fighter attacker, Fighter defender) => attacker -> defender -> String
+fight attacker defender
+  | getHealth defender <= 0 = (getName attacker) ++ " won!"
+  | getHealth attacker <= 0 = (getName defender) ++ " won!"
+  | otherwise           = fight defender'' attacker''
+  where
+    (action, attacker') = getNextAction attacker
+    (attacker'', defender'') = turn action attacker' defender
 
---   getNextAction knight = (knight', action)
---     where
---       actions = knightActions knight
---       action = head actions
---       knight' = knight { knightActions = tail actions ++ [head actions] }
-
--- instance Fighter Monster MonsterAction where
---   getName = monsterName
-
---   getHealth = monsterHealth
-
---   getNextAction monster = (monster', action)
---     where
---       actions = monsterActions monster
---       action = head actions
---       monster' = monster { monsterActions = tail actions ++ [head actions] }
-
--- turn :: (Fighter f1, Fighter f2, Action a) => a -> f1 -> f2 -> (f1, f2)
--- turn action attacker defender = case action of 
---   KAttack -> (getHit attacker defDmg, getHit defender atkDmg)
---   MAttack -> (getHit attacker defDmg, getHit defender atkDmg)
-
--- fight :: (Fighter f1, Fighter f2) => f1 -> f2 -> String
--- fight attacker defender
---   | defenderHealth <= 0 = (getName attacker) ++ " won!"
---   | attackerHealth <= 0 = (getName defender) ++ " won!"
---   | otherwise           = fight defender' attacker'
---   where
---     (attacker', defender') = turn attacker defender
---     attackerHealth = getHealth attacker
---     defenderHealth = getHealth defender
+turn :: (Fighter attacker, Fighter defender) => Action -> attacker -> defender -> (attacker, defender)
+turn AttackOpponent attacker defender = (attacker', defender')
+  where
+    attacker' = getHit attacker (getAttack defender)
+    defender' = getHit defender (getAttack attacker)
+turn UseHealingPotion attacker defender = (useHealingPotion attacker, defender)
+turn UseDefenseSpeell attacker defender = (useDefenseSpeell attacker, defender)
+turn RunAway attacker defender = (runAway attacker, defender)
 
 {-
 You did it! Now it is time to open pull request with your changes
