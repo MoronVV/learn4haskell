@@ -1113,15 +1113,12 @@ isWeekend :: WeekDay -> Bool
 isWeekend weekDay = weekDay > Friday
 
 nextDay :: WeekDay -> WeekDay
-nextDay Sunday = minBound
-nextDay weekDay = succ weekDay
+nextDay day
+  | day == maxBound = minBound
+  | otherwise = succ day
 
 daysToParty :: WeekDay -> Int
-daysToParty = go 0
-  where
-    go :: Int -> WeekDay -> Int
-    go n Friday = n
-    go n weekDay = go (n + 1) (nextDay weekDay)
+daysToParty weekDay = (fromEnum Friday - fromEnum weekDay) `mod` 7
 
 {-
 =💣= Task 9*
