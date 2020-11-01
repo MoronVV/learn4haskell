@@ -293,7 +293,7 @@ values and apply them to the type level?
 -}
 instance Functor (Secret e) where
     fmap :: (a -> b) -> Secret e a -> Secret e b
-    fmap _ (Trap e) = Trap e
+    fmap _ (Trap e)   = Trap e
     fmap f (Reward a) = Reward (f a)
 
 {- |
@@ -311,7 +311,7 @@ data List a
 
 instance Functor List where
   fmap :: (a -> b) -> List a -> List b
-  fmap _ Empty = Empty
+  fmap _ Empty       = Empty
   fmap f (Cons a as) = Cons (f a) (fmap f as)
 
 {- |
@@ -482,7 +482,7 @@ instance Applicative (Secret e) where
     pure = Reward
 
     (<*>) :: Secret e (a -> b) -> Secret e a -> Secret e b
-    Trap e <*> _ = Trap e
+    Trap e <*> _   = Trap e
     Reward f <*> x = fmap f x
 
 {- |
@@ -509,7 +509,7 @@ instance Applicative List where
       append (Cons x xs) ys = Cons x (append xs ys)
 
       concatList :: List (List a) -> List a
-      concatList Empty = Empty
+      concatList Empty        = Empty
       concatList (Cons is os) = append is (concatList os)
 
 {- |
@@ -622,7 +622,7 @@ Implement the 'Monad' instance for our 'Secret' type.
 -}
 instance Monad (Secret e) where
     (>>=) :: Secret e a -> (a -> Secret e b) -> Secret e b
-    Trap e >>= _ = Trap e
+    Trap e >>= _   = Trap e
     Reward a >>= f = f a
 
 {- |
@@ -644,7 +644,7 @@ instance Monad List where
       append (Cons x xs) ys = Cons x (append xs ys)
 
       concatList :: List (List a) -> List a
-      concatList Empty = Empty
+      concatList Empty        = Empty
       concatList (Cons is os) = append is (concatList os)
 
 {- |
@@ -664,7 +664,11 @@ Can you implement a monad version of AND, polymorphic over any monad?
 🕯 HINT: Use "(>>=)", "pure" and anonymous function
 -}
 andM :: (Monad m) => m Bool -> m Bool -> m Bool
-andM m1 m2 = (&&) <$> m1 <*> m2
+-- andM m1 m2 = (&&) <$> m1 <*> m2
+andM m1 m2 = m1 >>= (\x ->
+    if not x then pure x else
+    m2 >>= (\y -> pure $ x && y)
+  )
 
 {- |
 =🐉= Task 9*: Final Dungeon Boss
@@ -714,15 +718,15 @@ data Tree a
 
 instance Functor Tree where
   fmap :: (a -> b) -> Tree a -> Tree b
-  fmap _ Leaf = Leaf
+  fmap _ Leaf                = Leaf
   fmap f (Node x left right) = Node (f x) (fmap f left) (fmap f right)
 
 reverseTree :: Tree a -> Tree a
-reverseTree Leaf = Leaf
+reverseTree Leaf                = Leaf
 reverseTree (Node x left right) = Node x (reverseTree right) (reverseTree left)
 
 toList :: Tree a -> [a]
-toList Leaf = []
+toList Leaf                = []
 toList (Node x left right) = x : toList left ++ toList right
 
 {-
