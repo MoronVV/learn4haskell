@@ -707,7 +707,23 @@ Specifically,
    subtree of a tree
  ❃ Implement the function to convert Tree to list
 -}
+data Tree a
+  = Node a (Tree a) (Tree a)
+  | Leaf
+  deriving Show
 
+instance Functor Tree where
+  fmap :: (a -> b) -> Tree a -> Tree b
+  fmap _ Leaf = Leaf
+  fmap f (Node x left right) = Node (f x) (fmap f left) (fmap f right)
+
+reverseTree :: Tree a -> Tree a
+reverseTree Leaf = Leaf
+reverseTree (Node x left right) = Node x (reverseTree right) (reverseTree left)
+
+toList :: Tree a -> [a]
+toList Leaf = []
+toList (Node x left right) = x : toList left ++ toList right
 
 {-
 You did it! Now it is time to open pull request with your changes
