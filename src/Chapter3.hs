@@ -50,6 +50,7 @@ signatures in places where you can't by default. We believe it's helpful to
 provide more top-level type signatures, especially when learning Haskell.
 -}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Chapter3 where
 
@@ -344,6 +345,15 @@ of a book, but you are not limited only by the book properties we described.
 Create your own book type of your dreams!
 -}
 
+data Book = Book
+  { bookName :: String
+  , bookAuthor :: String
+  , bookSize :: Int
+  , bookPublisher :: String
+  , bookGenre :: String
+  , bookYear :: Int
+  } deriving (Show)
+
 {- |
 =⚔️= Task 2
 
@@ -373,6 +383,26 @@ after the fight. The battle has the following possible outcomes:
    doesn't earn any money and keeps what they had before.
 
 -}
+data Knight_ = Knight_
+  { knightHealth_ :: Int
+  , knightAttack_ :: Int
+  , knightGold_ :: Int
+  } deriving (Show)
+
+data Monster_ = Monster_
+  { monsterHealth_ :: Int
+  , monsterAttack_ :: Int
+  , monsterGold_ :: Int
+  } deriving (Show)
+
+fight_ :: Monster_ -> Knight_ -> Int
+fight_ monster@Monster_{..} knight@Knight_{..}
+  | monsterHealth_ <= 0 = knightGold_ + monsterGold_
+  | knightHealth_ <= 0 = -1
+  | otherwise    = fight_ monster' knight'
+  where
+    monster' = monster { monsterHealth_ = monsterHealth_ - knightAttack_ }
+    knight'  = knight { knightHealth_ = knightHealth_ - monsterAttack_ }
 
 {- |
 =🛡= Sum types
@@ -460,6 +490,20 @@ Create a simple enumeration for the meal types (e.g. breakfast). The one who
 comes up with the most number of names wins the challenge. Use your creativity!
 -}
 
+data Meal
+  = Omelette
+  | Beacon
+  | Toast
+  | Potato
+  | Chicken
+  | Rice
+  | Corn
+  | Porridge
+  | Pasta
+  | Pork
+  | Salad
+  | Beef
+
 {- |
 =⚔️= Task 4
 
@@ -479,6 +523,47 @@ After defining the city, implement the following functions:
    complicated task, walls can be built only if the city has a castle
    and at least 10 living __people__ inside in all houses of the city totally.
 -}
+data People
+  = NoPeople
+  | OnePerson
+  | TwoPersons
+  | ThreePersons
+  | FourPersons
+  deriving (Show, Enum)
+
+data Castle
+  = Castle String
+  | CastleWithWall
+  | NoCastle 
+  deriving (Show)
+
+data SpecBuilding = Church | Library deriving (Show)
+
+newtype House = House People deriving (Show)
+
+data City = City
+  { cityCastle          :: Castle
+  , citySpecialBuilding :: SpecBuilding
+  , cityHouses          :: [House]
+  } deriving (Show)
+
+buildCastle :: City -> Castle -> City
+buildCastle city castle = city { cityCastle = castle }
+
+buildHouse :: City -> House -> City
+buildHouse city house = city { cityHouses = house:houses }
+  where houses = cityHouses city
+
+buildWalls :: City -> City
+buildWalls city@(City NoCastle _ _) = city
+buildWalls city@(City CastleWithWall _ _) = city
+buildWalls city
+  | isEnoughPeople = city { cityCastle = CastleWithWall }
+  | otherwise  = city
+  where
+    isEnoughPeople = totalPeopleCount >= 10
+    totalPeopleCount = sum . map (\(House p) -> fromEnum p) $ houses
+    houses = cityHouses city
 
 {-
 =🛡= Newtypes
@@ -560,22 +645,30 @@ introducing extra newtypes.
 🕯 HINT: if you complete this task properly, you don't need to change the
     implementation of the "hitPlayer" function at all!
 -}
+newtype Health = Health Int
+newtype Armor = Armor Int
+newtype Attack = Attack Int
+newtype Dexterity = Dexterity Int
+newtype Strength = Strength Int
+newtype Damage = Damage Int
+newtype Defense = Defense Int
+
 data Player = Player
-    { playerHealth    :: Int
-    , playerArmor     :: Int
-    , playerAttack    :: Int
-    , playerDexterity :: Int
-    , playerStrength  :: Int
+    { playerHealth    :: Health
+    , playerArmor     :: Armor
+    , playerAttack    :: Attack
+    , playerDexterity :: Dexterity
+    , playerStrength  :: Strength
     }
 
-calculatePlayerDamage :: Int -> Int -> Int
-calculatePlayerDamage attack strength = attack + strength
+calculatePlayerDamage :: Attack -> Strength -> Damage
+calculatePlayerDamage (Attack attack) (Strength strength) = Damage (attack + strength)
 
-calculatePlayerDefense :: Int -> Int -> Int
-calculatePlayerDefense armor dexterity = armor * dexterity
+calculatePlayerDefense :: Armor -> Dexterity -> Defense
+calculatePlayerDefense (Armor armor) (Dexterity dexterity) = Defense (armor * dexterity)
 
-calculatePlayerHit :: Int -> Int -> Int -> Int
-calculatePlayerHit damage defense health = health + defense - damage
+calculatePlayerHit :: Damage -> Defense -> Health -> Health
+calculatePlayerHit (Damage damage) (Defense defense) (Health health) = Health (health + defense - damage)
 
 -- The second player hits first player and the new first player is returned
 hitPlayer :: Player -> Player -> Player
@@ -752,6 +845,19 @@ parametrise data types in places where values can be of any general type.
 🕯 HINT: 'Maybe' that some standard types we mentioned above are useful for
   maybe-treasure ;)
 -}
+data TreasureChest x = TreasureChest
+  { treasureChestGold :: Int
+  , treasureChestLoot :: x
+  } deriving (Show)
+
+data Dragon p = Dragon
+  { magicalPower :: p
+  } deriving (Show)
+
+data Lair dp cl = Lair
+  { lairDragon :: Dragon dp
+  , lairTreasures   :: Maybe (TreasureChest cl)
+  } deriving (Show)
 
 {-
 =🛡= Typeclasses
@@ -907,9 +1013,31 @@ Implement instances of "Append" for the following types:
   ✧ *(Challenge): "Maybe" where append is appending of values inside "Just" constructors
 
 -}
-class Append a where
-    append :: a -> a -> a
+newtype Gold = Gold Int deriving (Show)
 
+data List a
+  = Empty
+  | Cons a (List a)
+  deriving (Show)
+
+class Append a where
+  append :: a -> a -> a
+
+instance Append Gold where
+  append :: Gold -> Gold -> Gold
+  append (Gold n1) (Gold n2) = Gold (n1 + n2)
+
+instance Append (List a) where
+  append :: List a -> List a -> List a
+  append Empty ys       = ys
+  append xs Empty       = xs
+  append (Cons x xs) ys = Cons x (append xs ys)
+
+instance (Append a) => Append (Maybe a) where
+  append :: Maybe a -> Maybe a -> Maybe a
+  append Nothing outer2 = outer2
+  append outer1 Nothing = outer1
+  append (Just inner1) (Just inner2) = Just $ append inner1 inner2
 
 {-
 =🛡= Standard Typeclasses and Deriving
@@ -971,6 +1099,27 @@ implement the following functions:
 🕯 HINT: to implement this task, derive some standard typeclasses
 -}
 
+data WeekDay
+  = Monday
+  | Tuesday
+  | Wednesday
+  | Thursday
+  | Friday
+  | Saturday
+  | Sunday
+  deriving (Eq, Ord, Enum, Bounded, Show)
+
+isWeekend :: WeekDay -> Bool
+isWeekend weekDay = weekDay > Friday
+
+nextDay :: WeekDay -> WeekDay
+nextDay day
+  | day == maxBound = minBound
+  | otherwise = succ day
+
+daysToParty :: WeekDay -> Int
+daysToParty weekDay = (fromEnum Friday - fromEnum weekDay) `mod` 7
+
 {-
 =💣= Task 9*
 
@@ -1006,6 +1155,85 @@ Implement data types and typeclasses, describing such a battle between two
 contestants, and write a function that decides the outcome of a fight!
 -}
 
+data Action
+  = AttackOpponent
+  | UseHealingPotion
+  | UseDefenseSpeell
+  | RunAway
+  deriving Show
+
+data Knight = Knight
+  { knightName :: String
+  , knightHealth :: Int
+  , knightAttack :: Int
+  , knightDefense :: Int
+  , knightActions :: [Action]
+  } deriving Show
+
+data Monster = Monster
+  { monsterName :: String
+  , monsterHealth :: Int
+  , monsterAttack :: Int
+  , monsterActions :: [Action]
+  } deriving Show
+
+class Fighter fighter where
+  getName :: fighter -> String
+  getHealth :: fighter -> Int
+  getAttack :: fighter -> Int
+  getActions :: fighter -> [Action]
+  setActions :: fighter -> [Action] -> fighter
+  getHit :: fighter -> Int -> fighter
+  useHealingPotion :: fighter -> fighter
+  useDefenseSpeell :: fighter -> fighter
+  runAway :: fighter -> fighter
+
+instance Fighter Knight where
+  getName = knightName
+  getHealth = knightHealth
+  getAttack = knightAttack
+  getActions = knightActions
+  setActions knight actions = knight { knightActions = actions }
+  getHit knight dmg = knight { knightHealth = knightHealth knight - (dmg - knightDefense knight) }
+  useHealingPotion knight = knight { knightHealth = knightHealth knight + 50 }
+  useDefenseSpeell knight = knight { knightDefense = knightDefense knight + 25 }
+  runAway knight = knight
+
+instance Fighter Monster where
+  getName = monsterName
+  getHealth = monsterHealth
+  getAttack = monsterAttack
+  getActions = monsterActions
+  setActions monster actions = monster { monsterActions = actions }
+  getHit monster dmg = monster { monsterHealth = monsterHealth monster - dmg }
+  useHealingPotion monster = monster
+  useDefenseSpeell monster = monster
+  runAway monster = monster { monsterHealth = 0 }
+
+getNextAction :: (Fighter fighter) => fighter -> (Action, fighter)
+getNextAction fighter = (nextAction, fighter')
+  where
+    actions = getActions fighter
+    nextAction = head actions
+    fighter' = setActions fighter (tail actions ++ [nextAction])
+
+fight :: (Fighter attacker, Fighter defender) => attacker -> defender -> String
+fight attacker defender
+  | getHealth defender <= 0 = (getName attacker) ++ " won!"
+  | getHealth attacker <= 0 = (getName defender) ++ " won!"
+  | otherwise           = fight defender'' attacker''
+  where
+    (action, attacker') = getNextAction attacker
+    (attacker'', defender'') = turn action attacker' defender
+
+turn :: (Fighter attacker, Fighter defender) => Action -> attacker -> defender -> (attacker, defender)
+turn AttackOpponent attacker defender = (attacker', defender')
+  where
+    attacker' = getHit attacker (getAttack defender)
+    defender' = getHit defender (getAttack attacker)
+turn UseHealingPotion attacker defender = (useHealingPotion attacker, defender)
+turn UseDefenseSpeell attacker defender = (useDefenseSpeell attacker, defender)
+turn RunAway attacker defender = (runAway attacker, defender)
 
 {-
 You did it! Now it is time to open pull request with your changes
