@@ -622,7 +622,8 @@ Implement the 'Monad' instance for our 'Secret' type.
 -}
 instance Monad (Secret e) where
     (>>=) :: Secret e a -> (a -> Secret e b) -> Secret e b
-    (>>=) = error "bind Secret: Not implemented!"
+    Trap e >>= _ = Trap e
+    Reward a >>= f = f a
 
 {- |
 =⚔️= Task 7
@@ -632,7 +633,19 @@ Implement the 'Monad' instance for our lists.
 🕯 HINT: You probably will need to implement a helper function (or
   maybe a few) to flatten lists of lists to a single list.
 -}
+instance Monad List where
+  (>>=) :: List a -> (a -> List b) -> List b
+  Empty >>= _ = Empty
+  as >>= f = concatList . fmap f $ as
+    where
+      append :: List a -> List a -> List a
+      append Empty ys       = ys
+      append xs Empty       = xs
+      append (Cons x xs) ys = Cons x (append xs ys)
 
+      concatList :: List (List a) -> List a
+      concatList Empty = Empty
+      concatList (Cons is os) = append is (concatList os)
 
 {- |
 =💣= Task 8*: Before the Final Boss
@@ -651,7 +664,7 @@ Can you implement a monad version of AND, polymorphic over any monad?
 🕯 HINT: Use "(>>=)", "pure" and anonymous function
 -}
 andM :: (Monad m) => m Bool -> m Bool -> m Bool
-andM = error "andM: Not implemented!"
+andM m1 m2 = (&&) <$> m1 <*> m2
 
 {- |
 =🐉= Task 9*: Final Dungeon Boss
