@@ -496,21 +496,22 @@ Implement the 'Applicative' instance for our 'List' type.
   may also need to implement a few useful helper functions for our List
   type.
 -}
+append :: List a -> List a -> List a
+append Empty ys       = ys
+append xs Empty       = xs
+append (Cons x xs) ys = Cons x (append xs ys)
+
+concatList :: List (List a) -> List a
+concatList Empty        = Empty
+concatList (Cons is os) = append is (concatList os)
+
+
 instance Applicative List where
   pure :: a -> List a
   pure a = Cons a Empty
 
   (<*>) :: List (a -> b) -> List a -> List b
   fs <*> as = concatList . fmap (\f -> fmap f as) $ fs
-    where
-      append :: List a -> List a -> List a
-      append Empty ys       = ys
-      append xs Empty       = xs
-      append (Cons x xs) ys = Cons x (append xs ys)
-
-      concatList :: List (List a) -> List a
-      concatList Empty        = Empty
-      concatList (Cons is os) = append is (concatList os)
 
 {- |
 =🛡= Monad
@@ -637,15 +638,6 @@ instance Monad List where
   (>>=) :: List a -> (a -> List b) -> List b
   Empty >>= _ = Empty
   as >>= f = concatList . fmap f $ as
-    where
-      append :: List a -> List a -> List a
-      append Empty ys       = ys
-      append xs Empty       = xs
-      append (Cons x xs) ys = Cons x (append xs ys)
-
-      concatList :: List (List a) -> List a
-      concatList Empty        = Empty
-      concatList (Cons is os) = append is (concatList os)
 
 {- |
 =💣= Task 8*: Before the Final Boss
@@ -664,11 +656,7 @@ Can you implement a monad version of AND, polymorphic over any monad?
 🕯 HINT: Use "(>>=)", "pure" and anonymous function
 -}
 andM :: (Monad m) => m Bool -> m Bool -> m Bool
--- andM m1 m2 = (&&) <$> m1 <*> m2
-andM m1 m2 = m1 >>= (\x ->
-    if not x then pure x else
-    m2 >>= (\y -> pure $ x && y)
-  )
+andM m1 m2 = m1 >>= (\x -> if not x then pure x else m2)
 
 {- |
 =🐉= Task 9*: Final Dungeon Boss
